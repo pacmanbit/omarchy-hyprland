@@ -1,0 +1,8 @@
+# Backup and runtime artifacts
+*.bak
+*.bak.*
+*.backup-*
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

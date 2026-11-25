@@ -1,0 +1,13 @@
+#!/bin/bash
+# CPU + RAM usage for the Omarchy bar
+read -r _ cu1 cn1 cs1 ci1 _1 _2 _3 _4 _5 _6 _7 < /proc/stat
+idle1=$ci1; total1=$((cu1+cn1+cs1+ci1))
+sleep 0.3
+read -r _ cu2 cn2 cs2 ci2 _1 _2 _3 _4 _5 _6 _7 < /proc/stat
+idle2=$ci2; total2=$((cu2+cn2+cs2+ci2))
+d_total=$((total2-total1)); d_idle=$((idle2-idle1))
+[ "$d_total" -gt 0 ] || d_total=1
+cpu=$(( (d_total - d_idle) * 100 / d_total ))
+[ "$cpu" -lt 0 ] && cpu=0; [ "$cpu" -gt 100 ] && cpu=100
+
+free -m | awk -v ofMT=0 -v ofMA=1 '/^Mem:/{total=$2; used=$3} END{ ram=(used*100)/total; printf "{\"text\":\"󰻠 %d%%  󰍛 %d%%\",\"tooltip\":\"CPU %d%% • RAM %d%%\"}", cpu, ram, cpu, ram }' cpu="$cpu"

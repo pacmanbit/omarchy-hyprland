@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Ensure local bin paths are searched
+export PATH="$HOME/.local/bin:$HOME/.local/share/omarchy/bin:$PATH"
+
+# Find terminal launcher or fallback directly to kitty
+LAUNCHER="$(command -v xdg-terminal-exec || echo "$HOME/.local/bin/xdg-terminal-exec")"
+
+CWD="$(omarchy-cmd-terminal-cwd 2>/dev/null || echo "$HOME")"
+
+if command -v uwsm-app >/dev/null 2>&1; then
+  if [[ -x "$LAUNCHER" ]]; then
+    exec setsid uwsm-app -- "$LAUNCHER" --dir="$CWD" "$@"
+  else
+    exec setsid uwsm-app -- kitty --directory="$CWD" "$@"
+  fi
+else
+  if [[ -x "$LAUNCHER" ]]; then
+    exec "$LAUNCHER" --dir="$CWD" "$@"
+  else
+    exec kitty --directory="$CWD" "$@"
+  fi
+fi

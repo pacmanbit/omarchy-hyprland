@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# omarchy:summary=Toggle HDR mode on the focused (or specified) monitor
+# omarchy:args=[toggle|on|off|status] [monitor]
+
+ACTION="${1:-toggle}"
+MONITOR="${2:-}"
+
+if [[ -z "$MONITOR" ]]; then
+  MONITOR=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' | head -n1)
+fi
+[[ -n "$MONITOR" ]] || MONITOR="DP-1"
+
+MON_INFO=$(hyprctl monitors -j 2>/dev/null | jq -c ".[] | select(.name == \"$MONITOR\")")
+if [[ -z "$MON_INFO" ]]; then
+  echo "Monitor $MONITOR not found" >&2
+  exit 1
+fi
+
+WIDTH=$(jq -r '.width' <<<"$MON_INFO")
+HEIGHT=$(jq -r '.height' <<<"$MON_INFO")
+RATE=$(jq -r '.refreshRate | round' <<<"$MON_INFO")
+X=$(jq -r '.x' <<<"$MON_INFO")
+Y=$(jq -r '.y' <<<"$MON_INFO")
+SCALE=$(jq -r '.scale' <<<"$MON_INFO")
+STATUS=$(jq -r '.colorManagementPreset // "srgb"' <<<"$MON_INFO")
+
+RES="${WIDTH}x${HEIGHT}@${RATE}"
+POS="${X}x${Y}"
+
+enable_hdr() {
+  hyprctl repl "return hl.monitor({ output = \"$MONITOR\", mode = \"$RES\", position = \"$POS\", scale = $SCALE, bitdepth = 10, cm = \"hdr\", sdrbrightness = 1.2, sdrsaturation = 1.0 })" >/dev/null 2>&1
+  hyprctl notify -1 2500 "rgb(00ff99)" "HDR: Enabled on $MONITOR" >/dev/null 2>&1
+  echo "HDR enabled on $MONITOR ($RES)"
+}
+
+disable_hdr() {
+  hyprctl repl "return hl.monitor({ output = \"$MONITOR\", mode = \"$RES\", position = \"$POS\", scale = $SCALE, bitdepth = 10, cm = \"srgb\" })" >/dev/null 2>&1
+  hyprctl notify -1 2500 "rgb(ffaa00)" "HDR: Disabled on $MONITOR (sRGB)" >/dev/null 2>&1
+  echo "HDR disabled on $MONITOR ($RES)"
+}
+
+case "$ACTION" in
+  status)
+    echo "$STATUS"
+    ;;
+  on)
+    enable_hdr
+    ;;
+  off)
+    disable_hdr
+    ;;
+  toggle|"")
+    if [ "$STATUS" = "hdr" ]; then
+      disable_hdr
+    else
+      enable_hdr
+    fi
+    ;;
+  *)
+    echo "Usage: omarchy-toggle-hdr [toggle|on|off|status] [monitor]" >&2
+    exit 1
+    ;;
+esac

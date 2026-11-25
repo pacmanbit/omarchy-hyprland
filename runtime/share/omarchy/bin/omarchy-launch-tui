@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# omarchy:summary=Launch a TUI command in the default terminal with Omarchy styling
+# omarchy:args=[--app-id=<app-id>] <command> [args...]
+
+export PATH="$HOME/.local/bin:$HOME/.local/share/omarchy/bin:$PATH"
+
+if [[ ${1:-} == --app-id=* ]]; then
+  APP_ID="${1#--app-id=}"
+  shift
+else
+  APP_ID="org.omarchy.$(basename $1)"
+fi
+
+LAUNCHER="$(command -v xdg-terminal-exec || echo "$HOME/.local/bin/xdg-terminal-exec")"
+
+if [[ -x "$LAUNCHER" ]]; then
+  exec setsid uwsm-app -- "$LAUNCHER" --app-id=$APP_ID -e "$1" "${@:2}" 2>/dev/null || exec "$LAUNCHER" --app-id=$APP_ID -e "$1" "${@:2}"
+else
+  exec setsid uwsm-app -- kitty --class="$APP_ID" -e "$1" "${@:2}" 2>/dev/null || exec kitty --class="$APP_ID" -e "$1" "${@:2}"
+fi

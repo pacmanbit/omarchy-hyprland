@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# omarchy:summary=Launch the default browser as determined by xdg-settings.
+# omarchy:args=[url]
+
+default_browser=$(omarchy-cmd-default-browser 2>/dev/null || echo "app.zen_browser.zen.desktop")
+
+# If default browser is Zen Flatpak
+if [[ "$default_browser" == *"zen"* ]]; then
+  if [[ "${1:-}" == "--private" ]]; then
+    exec /usr/bin/flatpak run app.zen_browser.zen --private-window "${@:2}"
+  else
+    exec /usr/bin/flatpak run app.zen_browser.zen "$@"
+  fi
+fi
+
+# Fallback resolution for system packages
+browser_exec=$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' {~/.local,~/.nix-profile,/usr}/share/applications/$default_browser 2>/dev/null | head -1)
+
+if [[ -z "$browser_exec" ]]; then
+  browser_exec="$(command -v chromium || command -v firefox || echo "/usr/bin/flatpak run app.zen_browser.zen")"
+fi
+
+if $browser_exec --help 2>/dev/null | grep -q MOZ_LOG; then
+  private_flag="--private-window"
+elif [[ $browser_exec =~ edge ]]; then
+  private_flag="--inprivate"
+else
+  private_flag="--incognito"
+fi
+
+if ! omarchy-cmd-browser-handoff "$browser_exec" "${@/--private/$private_flag}" 2>/dev/null; then
+  exec setsid uwsm-app -- $browser_exec "${@/--private/$private_flag}" 2>/dev/null || exec $browser_exec "${@/--private/$private_flag}"
+fi
