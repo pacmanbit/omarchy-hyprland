@@ -16,15 +16,6 @@
           "verticalFormat": "HH\n\u2014\nmm"
         },
         {
-          "id": "prayer-times",
-          "type": "command",
-          "exec": "~/.config/omarchy/bar/scripts/prayer-times",
-          "interval": 60,
-          "tooltip": "Islamic Prayer Times (Al-Karak, Jordan)",
-          "onClick": "~/.config/omarchy/bar/scripts/prayer-times --notify",
-          "onRightClick": "~/.config/omarchy/bar/scripts/prayer-times --refresh"
-        },
-        {
           "id": "omarchy.weather"
         },
         {

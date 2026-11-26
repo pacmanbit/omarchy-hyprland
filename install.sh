@@ -16,7 +16,7 @@ USE_DUAL_MONITORS=0
 KEEP_KITTY=0
 KEEP_GTK=0
 KEEP_INPUT=0
-ENABLE_PRAYER=1
+ENABLE_PRAYER=0
 PRAYER_CITY=""
 PRAYER_COUNTRY=""
 PRAYER_METHOD=""
@@ -37,10 +37,10 @@ Options:
   --keep-kitty          Keep your existing ~/.config/kitty/kitty.conf
   --keep-gtk            Keep your existing ~/.config/gtk-3.0/settings.ini
   --keep-input          Keep your existing ~/.config/hypr/input.lua
-  --prayer-city CITY    Set Islamic Prayer Times city (default: Al-Karak)
-  --prayer-country CTRY Set Islamic Prayer Times country (default: Jordan)
-  --prayer-method METH  Set AlAdhan method (default: JORDAN)
-  --no-prayer           Remove prayer-times widget from the bar layout
+  --with-prayer         Also install optional Islamic Prayer Times plugin (off by default)
+  --prayer-city CITY    Set Islamic Prayer Times city (implies --with-prayer, default: Al-Karak)
+  --prayer-country CTRY Set Islamic Prayer Times country (implies --with-prayer, default: Jordan)
+  --prayer-method METH  Set AlAdhan method (implies --with-prayer, default: JORDAN)
   -h, --help            Show this help
 EOF
 }
@@ -56,9 +56,10 @@ while [[ $# -gt 0 ]]; do
     --keep-kitty) KEEP_KITTY=1; shift ;;
     --keep-gtk) KEEP_GTK=1; shift ;;
     --keep-input) KEEP_INPUT=1; shift ;;
-    --prayer-city) PRAYER_CITY="${2:-}"; shift 2 ;;
-    --prayer-country) PRAYER_COUNTRY="${2:-}"; shift 2 ;;
-    --prayer-method) PRAYER_METHOD="${2:-}"; shift 2 ;;
+    --with-prayer) ENABLE_PRAYER=1; shift ;;
+    --prayer-city) PRAYER_CITY="${2:-}"; ENABLE_PRAYER=1; shift 2 ;;
+    --prayer-country) PRAYER_COUNTRY="${2:-}"; ENABLE_PRAYER=1; shift 2 ;;
+    --prayer-method) PRAYER_METHOD="${2:-}"; ENABLE_PRAYER=1; shift 2 ;;
     --no-prayer) ENABLE_PRAYER=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
@@ -232,27 +233,48 @@ mkdir -p "$HOME/.config/omarchy"
 rsync -a "$REPO_DIR/config/omarchy/" "$HOME/.config/omarchy/"
 chmod +x "$HOME/.config/omarchy/bar/scripts/"*
 
-# Prayer times config
-if (( ENABLE_PRAYER == 0 )); then
-  python3 -c '
+# Optional Islamic Prayer Times plugin (disabled by default)
+if (( ENABLE_PRAYER == 0 && NON_INTERACTIVE == 0 )); then
+  ask_yn "Install optional Islamic Prayer Times bar widget (github.com/pacmanbit/omarchy-prayer-times)?" "n" && ENABLE_PRAYER=1
+fi
+
+if (( ENABLE_PRAYER )); then
+  PLUGIN_DIR="$HOME/.config/omarchy/plugins/pacmanbit.prayer-times"
+  if command -v git >/dev/null 2>&1; then
+    info "Installing optional Islamic Prayer Times plugin..."
+    rm -rf "$PLUGIN_DIR"
+    if git clone --depth 1 https://github.com/pacmanbit/omarchy-prayer-times.git "$PLUGIN_DIR"; then
+      chmod +x "$PLUGIN_DIR/scripts/prayer-times"
+      if [[ -n "$PRAYER_CITY" || -n "$PRAYER_COUNTRY" || -n "$PRAYER_METHOD" ]]; then
+        cat > "$HOME/.config/prayer-times.json" <<EOF
+{
+  "city": "${PRAYER_CITY:-Al-Karak}",
+  "country": "${PRAYER_COUNTRY:-Jordan}",
+  "method": "${PRAYER_METHOD:-JORDAN}",
+  "now_window": 20,
+  "close_threshold": 30,
+  "now_color": "#50FA7B",
+  "close_color": "#FAB387"
+}
+EOF
+      fi
+      python3 -c '
 import json
 p = "'"$HOME"'/.config/omarchy/shell.json"
 with open(p) as f: d = json.load(f)
-d["bar"]["layout"]["center"] = [x for x in d["bar"]["layout"]["center"] if x.get("id") != "prayer-times"]
+center = d["bar"]["layout"]["center"]
+if not any(x.get("id") == "pacmanbit.prayer-times" for x in center):
+    idx = next((i + 1 for i, x in enumerate(center) if x.get("id") == "omarchy.clock"), len(center))
+    center.insert(idx, {"id": "pacmanbit.prayer-times"})
 with open(p, "w") as f: json.dump(d, f, indent=2)
 '
-  info "Removed prayer-times module from bar layout (--no-prayer)."
-elif [[ -n "$PRAYER_CITY" || -n "$PRAYER_COUNTRY" || -n "$PRAYER_METHOD" ]]; then
-  python3 -c '
-import json
-p = "'"$HOME"'/.config/omarchy/prayer-times.json"
-with open(p) as f: d = json.load(f)
-if "'"$PRAYER_CITY"'": d["city"] = "'"$PRAYER_CITY"'"
-if "'"$PRAYER_COUNTRY"'": d["country"] = "'"$PRAYER_COUNTRY"'"
-if "'"$PRAYER_METHOD"'": d["method"] = "'"$PRAYER_METHOD"'"
-with open(p, "w") as f: json.dump(d, f, indent=2)
-'
-  info "Updated ~/.config/omarchy/prayer-times.json."
+      ok "Installed and enabled pacmanbit.prayer-times in bar layout."
+    else
+      warn "Could not clone omarchy-prayer-times; skipping optional prayer widget."
+    fi
+  else
+    warn "git not found; skipping optional prayer widget."
+  fi
 fi
 
 if (( KEEP_KITTY == 0 )); then

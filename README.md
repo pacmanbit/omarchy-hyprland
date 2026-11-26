@@ -6,10 +6,10 @@ Includes:
 - **User-space Omarchy 4.0 runtime** (`~/.local/share/omarchy` + `~/.local/bin/omarchy*`) with Quickshell bar, wallpaper daemon, lockscreen, idle manager, OSD, and menu system.
 - **Hyprland Lua configuration** (`~/.config/hypr/*.lua` for Hyprland `>= 0.54`, tested on `0.57.2`).
 - **Custom Top Bar & Widgets**:
-  - **Islamic Prayer Times widget** (`~/.config/omarchy/bar/scripts/prayer-times`) with **3-state dynamic colors** (`NOW` = green `#50FA7B`, `CLOSE` within 30m = amber `#FAB387`, `FAR` = theme default), desktop Adhan notifications, bilingual EN/AR tooltip, and configurable city/country/method (defaults to **Al-Karak, Jordan** — Jordan Awqaf).
   - **System Stats widget** (`CPU %` & `RAM %`).
-  - **Centered bar layout** (`omarchy.indicators` + `omarchy.clock` + `prayer-times`).
+  - **Centered bar layout** (`omarchy.indicators` + `omarchy.clock` + `omarchy.weather`).
   - **Patched `Bar.qml`** supporting custom JSON `"color"` / `"foreground"` / `"class"` (`now`, `close`) in command widgets.
+  - **Optional Add-on**: [Islamic Prayer Times plugin](https://github.com/pacmanbit/omarchy-prayer-times) (not installed by default; enable via `./install.sh --with-prayer` or `omarchy plugin add`).
 - **Two Themes Ready Out of the Box**: `nord` (default active) and `black-sand`.
 - **Custom Keybindings**:
   - `SUPER + F` → Full width / Maximize (`maximized`)
@@ -71,17 +71,18 @@ On non-systemd distros (Void, Artix, Alpine), `omarchy-launch-shell` automatical
 
 ## Customization
 
-### Islamic Prayer Times City
-Edit `~/.config/omarchy/prayer-times.json` (or pass `--prayer-city`, `--prayer-country`, `--prayer-method` to `./install.sh`):
+### Optional: Islamic Prayer Times Widget
+Islamic Prayer Times is **not installed by default**. To include it during setup:
 
-```json
-{
-  "city": "Al-Karak",
-  "country": "Jordan",
-  "method": "JORDAN"
-}
+```bash
+./install.sh --with-prayer --prayer-city "Al-Karak" --prayer-country "Jordan" --prayer-method "JORDAN"
 ```
-Then right-click the prayer widget on the bar to refresh immediately. To remove it completely, install with `--no-prayer`.
+
+Or install it anytime later with:
+
+```bash
+omarchy plugin add https://github.com/pacmanbit/omarchy-prayer-times.git --enable --yes
+```
 
 ### Monitors & Dual-Monitor HDR Preset
 By default, `config/hypr/monitors.lua` uses universal auto-detection (`preferred`, `auto`, `scale = 1`).
