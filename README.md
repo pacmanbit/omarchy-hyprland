@@ -22,6 +22,8 @@ Includes:
   - `SUPER + SPACE` → Omarchy Menu / Rofi launcher
   - `SUPER + R` → App Launcher (`rofi`)
 
+  See **[KEYBINDS.md](KEYBINDS.md)** for the full keybindings reference.
+
 ---
 
 ## Quick Install (Both Fresh & Existing Systems)
@@ -54,6 +56,15 @@ Non-interactive example keeping your existing monitors and input layout:
 ```bash
 ./install.sh --existing -y --keep-monitors --keep-input
 ```
+
+### 3. Keybinds-Only Install (No Bar / Theme Changes)
+If you only want the Hyprland keybindings (works on both **Omarchy Lua** `bindings.lua` and **standard `hyprland.conf`**):
+
+```bash
+./scripts/install-keybinds.sh
+```
+
+See [KEYBINDS.md](KEYBINDS.md) for `--lua`, `--conf`, and `--uninstall` options.
 
 ---
 
